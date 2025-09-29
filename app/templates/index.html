@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Form Tester — Quick Screenshot UI</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 20px; max-width: 900px; }
+    input[type="text"]{ width: 70%; padding: 8px; }
+    button{ padding: 8px 12px; margin-left: 8px; }
+    .result{ margin-top: 20px; }
+    .thumb{ max-width: 400px; border: 1px solid #ddd; padding: 4px; }
+    pre { background:#f6f6f6; padding:10px; overflow:auto; }
+  </style>
+</head>
+<body>
+  <h2>Form Tester — Quick Screenshot</h2>
+  <p>Enter a URL (must be public or reachable from your machine):</p>
+  <input id="url" placeholder="https://example.com" />
+  <label style="margin-left:8px">
+    <input id="fullpage" type="checkbox" checked/> full_page
+  </label>
+  <button id="run">Capture</button>
+
+  <div class="result" id="result"></div>
+
+<script>
+document.getElementById('run').addEventListener('click', async () => {
+  const url = document.getElementById('url').value.trim();
+  if (!url) { alert('Enter a URL'); return; }
+  const full_page = document.getElementById('fullpage').checked ? 'true' : 'false';
+  const endpoint = `/screenshot?url=${encodeURIComponent(url)}&full_page=${full_page}`;
+  document.getElementById('result').innerHTML = '<em>Running...</em>';
+  try {
+    const r = await fetch(endpoint);
+    const j = await r.json();
+    if (!j || j.status !== 'ok') {
+      document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(j, null, 2) + '</pre>';
+      return;
+    }
+    const imgUrl = j.screenshot;
+    const html = `
+      <div>Job: <b>${j.job_id}</b></div>
+      <div>URL: <code>${url}</code></div>
+      <div style="margin-top:10px">
+        <a href="${imgUrl}" target="_blank">Open screenshot</a>
+      </div>
+      <div style="margin-top:10px">
+        <img src="${imgUrl}" class="thumb" alt="screenshot"/>
+      </div>
+      <pre>${JSON.stringify(j.metadata, null, 2)}</pre>
+    `;
+    document.getElementById('result').innerHTML = html;
+  } catch (err) {
+    document.getElementById('result').innerHTML = '<pre>' + err.toString() + '</pre>';
+  }
+});
+</script>
+</body>
+</html>

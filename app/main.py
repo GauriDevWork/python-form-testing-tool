@@ -3,12 +3,46 @@ if sys.platform == "win32":
     import asyncio
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-from fastapi import FastAPI, Query, HTTPException, Request
+from fastapi import FastAPI, Query, HTTPException, Request, Body
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from playwright.sync_api import sync_playwright
-import os, uuid, json, datetime
+from discover import discover_forms
+from fastapi.responses import JSONResponse
+import os, uuid, json, datetime, urllib.parse
+
+TEMPLATES_DIR = os.path.join(os.getcwd(), "templates_data")
+os.makedirs(TEMPLATES_DIR, exist_ok=True)
+
+def hostname_to_filename(hostname: str) -> str:
+    # sanitize simple: replace non-alnum with underscore
+    safe = "".join(c if c.isalnum() or c in ("-",".") else "_" for c in hostname)
+    return f"{safe}_template.json"
+
+def save_template_for_url(url: str, template_data: dict):
+    parsed = urllib.parse.urlparse(url)
+    hostname = parsed.hostname or "site"
+    fname = hostname_to_filename(hostname)
+    path = os.path.join(TEMPLATES_DIR, fname)
+    # add metadata
+    template_data.setdefault("url", url)
+    template_data["hostname"] = hostname
+    template_data["saved_at"] = datetime.datetime.utcnow().isoformat()
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(template_data, f, indent=2)
+    return path
+
+def load_template_for_url(url: str):
+    parsed = urllib.parse.urlparse(url)
+    hostname = parsed.hostname or "site"
+    fname = hostname_to_filename(hostname)
+    path = os.path.join(TEMPLATES_DIR, fname)
+    if not os.path.exists(path):
+        return None
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
 
 app = FastAPI(title="Form Tester (Dev)")
 
@@ -105,3 +139,36 @@ def screenshot(
         append_job_log(metadata)
         raise HTTPException(status_code=500, detail=f"Playwright error: {e}")
 
+@app.get("/discover")
+def discover_endpoint(url: str):
+    if not (url.startswith("http://") or url.startswith("https://")):
+        return JSONResponse({"error":"url must start with http/https"}, status_code=400)
+    try:
+        res = discover_forms(url)
+        return JSONResponse(res)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    
+@app.post("/select_template")
+def select_template(payload: dict = Body(...)):
+    """
+    Accepts JSON like:
+    {
+      "url": "https://staging.example.com/contact",
+      "form_index": 0,
+      "form_selector": "form#wpcf7-f123",
+      "mapping": { "your-name": "Test User", "your-email": "test@example.com" }
+    }
+    """
+    url = payload.get("url")
+    if not url:
+        return JSONResponse({"error":"url required"}, status_code=400)
+    try:
+        path = save_template_for_url(url, {
+            "form_index": payload.get("form_index"),
+            "form_selector": payload.get("form_selector"),
+            "mapping": payload.get("mapping", {})
+        })
+        return JSONResponse({"status":"ok", "path": path})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)

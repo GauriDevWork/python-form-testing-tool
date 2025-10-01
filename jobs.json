@@ -18,5 +18,45 @@
     "artifact": "/artifacts/677ecc30a1.png",
     "status": "ok",
     "timestamp": "2025-09-29T05:34:00.428543"
+  },
+  {
+    "job_id": "43a1f68037",
+    "url": "http://httpbin.org/",
+    "full_page": "true",
+    "clip": null,
+    "timeout": 30000,
+    "artifact": "/artifacts/43a1f68037.png",
+    "status": "ok",
+    "timestamp": "2025-09-29T05:48:47.361987"
+  },
+  {
+    "job_id": "beb0c5c9ca",
+    "url": "http://httpbin.org/",
+    "full_page": "false",
+    "clip": null,
+    "timeout": 30000,
+    "artifact": "/artifacts/beb0c5c9ca.png",
+    "status": "ok",
+    "timestamp": "2025-09-29T05:48:58.193122"
+  },
+  {
+    "job_id": "6b204d8d6c",
+    "url": "https://gotechark.com",
+    "full_page": "true",
+    "clip": null,
+    "timeout": 30000,
+    "artifact": "/artifacts/6b204d8d6c.png",
+    "status": "ok",
+    "timestamp": "2025-09-29T05:53:12.953458"
+  },
+  {
+    "job_id": "27d6c5fd0f",
+    "url": "https://gotechark.com",
+    "full_page": "false",
+    "clip": null,
+    "timeout": 30000,
+    "artifact": "/artifacts/27d6c5fd0f.png",
+    "status": "ok",
+    "timestamp": "2025-09-29T05:53:29.511049"
   }
 ]

@@ -1,0 +1,169 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Form Tester — Quick Screenshot UI</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 20px; max-width: 900px; }
+    input[type="text"]{ width: 70%; padding: 8px; }
+    button{ padding: 8px 12px; margin-left: 8px; }
+    .result{ margin-top: 20px; }
+    .thumb{ max-width: 400px; border: 1px solid #ddd; padding: 4px; }
+    pre { background:#f6f6f6; padding:10px; overflow:auto; }
+
+    .form-card { border:1px solid #e2e2e2; padding:10px; margin-bottom:10px; border-radius:6px; }
+    .form-title { font-weight:700; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:11px; color:white; }
+    .badge-visible { background:#28a745; }   /* green */
+    .badge-hidden  { background:#6c757d; }   /* gray */
+    .small-muted { font-size:0.9em; color:#555; }
+  </style>
+</head>
+<body>
+  <h2>Form Tester — Quick Screenshot</h2>
+  <p>Enter a URL (must be public or reachable from your machine):</p>
+  <input id="url" placeholder="https://example.com" />
+  <label style="margin-left:8px">
+    <input id="fullpage" type="checkbox" checked/> full_page
+  </label>
+  <!-- <button id="edit_mapping">Edit mapping / Save template</button> -->
+  <button id="run">Capture</button>
+  <button id="discover">Discover Forms</button>
+  <div id="forms_list" style="margin-top:12px;"></div>
+  <pre id="discover_result" style="display:none;background:#f6f6f6;padding:8px;"></pre>
+  <div class="result" id="result"></div>
+  
+<script>
+document.getElementById('run').addEventListener('click', async () => {
+  const url = document.getElementById('url').value.trim();
+  if (!url) { alert('Enter a URL'); return; }
+  const full_page = document.getElementById('fullpage').checked ? 'true' : 'false';
+  const endpoint = `/screenshot?url=${encodeURIComponent(url)}&full_page=${full_page}`;
+  document.getElementById('result').innerHTML = '<em>Running...</em>';
+  try {
+    const r = await fetch(endpoint);
+    const j = await r.json();
+    if (!j || j.status !== 'ok') {
+      document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(j, null, 2) + '</pre>';
+      return;
+    }
+    const imgUrl = j.screenshot;
+    const html = `
+      <div>Job: <b>${j.job_id}</b></div>
+      <div>URL: <code>${url}</code></div>
+      <div style="margin-top:10px">
+        <a href="${imgUrl}" target="_blank">Open screenshot</a>
+      </div>
+      <div style="margin-top:10px">
+        <img src="${imgUrl}" class="thumb" alt="screenshot"/>
+      </div>
+      <pre>${JSON.stringify(j.metadata, null, 2)}</pre>
+    `;
+    document.getElementById('result').innerHTML = html;
+  } catch (err) {
+    document.getElementById('result').innerHTML = '<pre>' + err.toString() + '</pre>';
+  }
+});
+
+
+document.getElementById('discover').addEventListener('click', async () => {
+  const url = document.getElementById('url').value.trim();
+  if (!url) { alert('Enter a URL'); return; }
+  const formsContainer = document.getElementById('forms_list');
+  formsContainer.innerHTML = 'Discovering...';
+  try {
+    const resp = await fetch(`/discover?url=${encodeURIComponent(url)}`);
+    const data = await resp.json();
+    if (data.error) {
+      formsContainer.innerText = 'Error: ' + data.error;
+      return;
+    }
+    // sort: visible forms first
+    data.forms.sort((a,b) => (a.visible === b.visible) ? a.form_index - b.form_index : (a.visible ? -1 : 1));
+
+    const listHtml = data.forms.map(f => {
+      const visibleBadge = f.visible ? `<span class="badge badge-visible">visible</span>` : `<span class="badge badge-hidden">hidden</span>`;
+      const labels = f.fields.slice(0,3).map(x => (x.label || x.name || x.placeholder)).filter(Boolean).join(', ');
+      const previewEscaped = escapeHtml(f.preview_html);
+      return `
+        <div class="form-card">
+          <div class="form-title">Form #${f.form_index} ${visibleBadge}</div>
+          <div class="small-muted">selector: <code>${f.selector}</code></div>
+          <div style="margin:6px 0">Fields: ${labels || '<em>none</em>'}</div>
+          <!--<button onclick="openMappingEditor(${f.form_index}, '${escapeAttr(f.selector)}')">Select this form</button> -->
+          <button id="edit_mapping">Edit mapping / Save template</button>
+          <button onclick="togglePreview(${f.form_index})">Preview HTML</button>
+          <div id="preview_${f.form_index}" style="display:none;margin-top:8px"><pre>${previewEscaped}</pre></div>
+        </div>`;
+    }).join('');
+    formsContainer.innerHTML = listHtml || '<div>No forms found</div>';
+  } catch (err) {
+    formsContainer.innerText = err.toString();
+  }
+});
+
+function escapeHtml(s) {
+  return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '';
+}
+function escapeAttr(s) {
+  return s ? s.replace(/'/g, "\\'") : '';
+}
+function togglePreview(index){
+  const el = document.getElementById('preview_' + index);
+  el.style.display = (el.style.display === 'none' || !el.style.display) ? 'block' : 'none';
+}
+// opens mapping editor for selected form and saves to /select_template
+document.getElementById('edit_mapping').addEventListener('click', async () => {
+  const url = document.getElementById('url').value.trim();
+  if (!url) { alert('Enter a URL'); return; }
+  if (!window.selectedForm) { alert('Select a form first'); return; }
+  // fetch discover to get current fields
+  const resp = await fetch(`/discover?url=${encodeURIComponent(url)}`);
+  const data = await resp.json();
+  if (data.error) { alert('Discover error: ' + data.error); return; }
+  const f = data.forms.find(x => x.form_index === window.selectedForm.index);
+  if (!f) { alert('Selected form not found in discovery results'); return; }
+
+  // build editor HTML
+  let html = `<div style="padding:10px;border:1px solid #ddd;margin-top:10px;"><h3>Mapping for form #${f.form_index}</h3><form id="mappingForm">`;
+  f.fields.forEach((fld, idx) => {
+    const name = fld.name || fld.id || `field_${idx}`;
+    const suggested = (fld.type === 'email') ? `test+${name}@example.com` : (fld.type === 'textarea' ? 'Hello, this is a test.' : 'Test Value');
+    html += `<div style="margin-bottom:8px;"><label style="font-size:0.9em">${name} <small style="color:#555">${fld.label||''}</small></label><br>
+             <input name="${name}" style="width:80%" value="${suggested}"/></div>`;
+  });
+  html += `<button type="button" id="saveTemplateBtn">Save Template</button> <button type="button" id="cancelTemplateBtn">Cancel</button></form></div>`;
+  document.getElementById('forms_list').innerHTML = html;
+
+  document.getElementById('cancelTemplateBtn').addEventListener('click', () => { document.getElementById('forms_list').innerHTML = ''; });
+
+  document.getElementById('saveTemplateBtn').addEventListener('click', async () => {
+    const fd = new FormData(document.getElementById('mappingForm'));
+    const mapping = {};
+    fd.forEach((v,k) => mapping[k] = v);
+    const payload = {
+      url: url,
+      form_index: f.form_index,
+      form_selector: window.selectedForm.selector,
+      mapping: mapping
+    };
+    const r = await fetch('/select_template', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const j = await r.json();
+    if (j.status === 'ok') {
+      alert('Template saved: ' + j.path);
+      // optionally reload discover UI or show template saved message
+    } else {
+      alert('Save error: ' + JSON.stringify(j));
+    }
+  });
+});
+
+
+
+</script>
+</body>
+</html>

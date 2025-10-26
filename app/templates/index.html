@@ -1,217 +1,123 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Form Tester</title>
-  <style>
-    body { font-family: sans-serif; margin: 20px; background: #fafafa; }
-    input[type=text] { width: 400px; padding: 6px; }
-    button { margin: 4px; padding: 6px 12px; cursor: pointer; }
-    .form-card { border:1px solid #ddd; padding:10px; margin-bottom:10px; border-radius:6px; background: #fff; }
-    .form-title { font-weight: bold; margin-bottom: 6px; }
-    .badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:11px; color:white; margin-left: 6px;}
-    .badge-visible { background:#28a745; }   /* green */
-    .badge-hidden  { background:#6c757d; }   /* gray */
-    .small-muted { font-size:0.9em; color:#555; }
-    pre { background: #f6f6f6; padding: 8px; overflow:auto; max-height:200px; }
-  </style>
+<meta charset="utf-8" />
+<title>Form Tester — Live</title>
+<style>
+  body{font-family:Inter,Segoe UI,Arial;margin:18px;background:#fafafa}
+  input{width:480px;padding:8px;border:1px solid #ccc;border-radius:4px}
+  button{padding:8px 12px;background:#007bff;color:#fff;border:none;border-radius:4px;cursor:pointer}
+  #progress_wrap{width:100%;height:18px;background:#eee;border-radius:12px;margin-top:14px;overflow:hidden}
+  #bar{height:18px;background:#28a745;width:0;transition:width .3s}
+  .timer{margin-top:8px;color:#444}
+  .step{background:#fff;border:1px solid #e6e6e6;padding:8px;border-radius:6px;margin-top:8px}
+  .ok{color:#28a745;font-weight:600}
+  .error{color:#d93025;font-weight:600}
+  img.preview{max-width:460px;border:1px solid #ddd;margin-top:6px;border-radius:4px}
+  .meta{font-size:0.9rem;color:#666}
+</style>
 </head>
 <body>
-  <h1>Form Tester</h1>
+  <h1>Form Tester (Live)</h1>
   <div>
-    <input id="url" type="text" placeholder="Enter site URL" />
-    <button id="discover">Discover</button>
-    <button id="edit_mapping">Edit mapping / Save template</button>
-    <button id="run_template">Run template</button>
+    <input id="url" placeholder="Enter full page URL (http/https)"/>
+    <button id="start">Start Test</button>
   </div>
 
-  <div id="forms_list" style="margin-top:20px;"></div>
+  <div id="progress_wrap"><div id="bar"></div></div>
+  <div class="timer" id="timer">Elapsed: 0s | Remaining: 0s</div>
 
-  <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    // -------------------- Helpers --------------------
-    function escapeHtml(s) {
-      return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '';
+  <div id="steps"></div>
+  <div id="screens"></div>
+
+<script>
+const startBtn = document.getElementById('start');
+const urlBox = document.getElementById('url');
+const bar = document.getElementById('bar');
+const timer = document.getElementById('timer');
+const stepsDiv = document.getElementById('steps');
+const screensDiv = document.getElementById('screens');
+
+let jobId = null;
+let pollInterval = null;
+
+startBtn.addEventListener('click', async () => {
+  const url = urlBox.value.trim();
+  if(!url) { alert('Enter a valid http(s) URL'); return; }
+  stepsDiv.innerHTML = '<div class="meta">Starting job...</div>';
+  screensDiv.innerHTML = '';
+  try {
+    const res = await fetch(`/run_template_async?url=${encodeURIComponent(url)}`);
+    const data = await res.json();
+    if(data.error){ alert('Server error: '+data.error); return; }
+    jobId = data.job_id;
+    bar.style.width = '2%';
+    // start polling
+    pollInterval = setInterval(checkStatus, 1000);
+  } catch (e) {
+    console.error(e); alert('Request failed: '+e.toString());
+  }
+});
+
+async function checkStatus(){
+  if(!jobId) return;
+  try {
+    const r = await fetch(`/job_status?job_id=${jobId}`);
+    if(!r.ok){ console.error('status fetch failed', r.status); return; }
+    const d = await r.json();
+    if(!d || !d.job_id) return;
+
+    // progress bar
+    const progress = d.progress || 0;
+    bar.style.width = progress + '%';
+
+    // timer & eta
+    timer.innerText = `Elapsed: ${d.elapsed || 0}s | Remaining: ${d.eta || 0}s`;
+
+    // steps
+    let html = `<h3>Status: ${d.result || 'RUNNING'}</h3>`;
+    html += `<div class="meta">Job: ${d.job_id} • URL: ${d.url}</div>`;
+    html += '<div style="margin-top:10px">';
+    if(Array.isArray(d.steps)){
+      d.steps.forEach(step=>{
+        const cls = step.status && step.status.toString().toLowerCase().includes('ok') ? 'ok' :
+                    step.status && step.status.toString().toLowerCase().includes('error') ? 'error' : '';
+        const labelPart = step.label ? `<strong>${escapeHtml(step.label)}</strong> — ` : '';
+        const fieldPart = step.field ? `<em>(${escapeHtml(step.field)})</em> ` : '';
+        const valuePart = step.value ? `<code> ${escapeHtml(step.value)}</code>` : '';
+        const errPart = step.error ? `<div style="color:#d93025;margin-top:6px">${escapeHtml(step.error)}</div>` : '';
+        html += `<div class="step ${cls}">${labelPart}${escapeHtml(step.action)} ${fieldPart}${valuePart}${errPart}</div>`;
+      });
+    }
+    html += '</div>';
+    stepsDiv.innerHTML = html;
+
+    // screenshots
+    if(Array.isArray(d.artifacts) && d.artifacts.length){
+      let scHtml = '<h4>Screenshots</h4>';
+      d.artifacts.forEach(a=>{
+        scHtml += `<div style="margin-top:10px"><a href="${a}" target="_blank">${a}</a><br><img class="preview" src="${a}"/></div>`;
+      });
+      screensDiv.innerHTML = scHtml;
     }
 
-    // global state
-    window.discoveredForms = null;
-    window.selectedForm = null;
-
-    const discoverBtn = document.getElementById('discover');
-    const editBtn = document.getElementById('edit_mapping');
-    const formsList = document.getElementById('forms_list');
-    const urlInput = document.getElementById('url');
-
-    // -------------------- Discover handler --------------------
-    discoverBtn.addEventListener('click', async () => {
-      const url = urlInput.value.trim();
-      if (!url) { alert('Enter a URL'); return; }
-      formsList.innerHTML = 'Discovering...';
-
-      try {
-        const resp = await fetch(`/discover?url=${encodeURIComponent(url)}`);
-        const data = await resp.json();
-        if (data.error) {
-          formsList.innerText = 'Error: ' + data.error;
-          return;
-        }
-        window.discoveredForms = data.forms || [];
-
-        // sort visible first
-        window.discoveredForms.sort((a,b) => (a.visible === b.visible) ? a.form_index - b.form_index : (a.visible ? -1 : 1));
-
-        // render cards
-        const html = window.discoveredForms.map(f => {
-          const badge = f.visible ? `<span class="badge badge-visible">visible</span>` : `<span class="badge badge-hidden">hidden</span>`;
-          const labels = (f.fields||[]).slice(0,3).map(x => x.label || x.name || x.placeholder).filter(Boolean).join(', ');
-          const preview = escapeHtml(f.preview_html || '');
-          return `
-            <div class="form-card" data-index="${f.form_index}" data-selector="${escapeHtml(f.selector)}">
-              <div class="form-title">Form #${f.form_index} ${badge}</div>
-              <div class="small-muted">selector: <code>${escapeHtml(f.selector)}</code></div>
-              <div style="margin:6px 0">Fields: ${labels || '<em>none</em>'}</div>
-              <div style="margin-top:8px">
-                <button class="btn-select" data-index="${f.form_index}">Select</button>
-                <button class="btn-preview" data-index="${f.form_index}">Preview HTML</button>
-              </div>
-              <div id="preview_${f.form_index}" style="display:none;margin-top:8px"><pre>${preview}</pre></div>
-            </div>`;
-        }).join('');
-        formsList.innerHTML = html || '<div>No forms found</div>';
-      } catch (err) {
-        formsList.innerText = 'Error: ' + err.toString();
-        console.error(err);
+    if(progress >= 100){
+      clearInterval(pollInterval);
+      bar.style.width = '100%';
+      // play small success chime if PASS
+      if(d.result === 'PASS'){
+        try { new Audio('https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg').play(); } catch(e){}
       }
-    });
+    }
+  } catch (e) {
+    console.error('checkStatus error', e);
+  }
+}
 
-    // -------------------- Event delegation for select / preview --------------------
-    formsList.addEventListener('click', (ev) => {
-      const target = ev.target;
-      // Select button
-      if (target.classList.contains('btn-select')) {
-        const card = target.closest('.form-card');
-        if (!card) return;
-        const index = parseInt(card.getAttribute('data-index'));
-        const selector = card.getAttribute('data-selector');
-        window.selectedForm = { index: index, selector: selector };
-        // highlight selected card
-        document.querySelectorAll('.form-card').forEach(c => c.style.boxShadow = '');
-        card.style.boxShadow = '0 0 0 3px rgba(0,123,255,0.12)';
-        console.log('Selected form', window.selectedForm);
-        alert(`Selected form ${index}`);
-        return;
-      }
-
-      // Preview button
-      if (target.classList.contains('btn-preview')) {
-        const idx = target.getAttribute('data-index');
-        const el = document.getElementById('preview_' + idx);
-        if (!el) return;
-        el.style.display = (el.style.display === 'none' || !el.style.display) ? 'block' : 'none';
-        return;
-      }
-    });
-
-    // -------------------- Edit mapping / Save template --------------------
-    editBtn.addEventListener('click', async () => {
-      const url = urlInput.value.trim();
-      if (!url) { alert('Enter a URL'); return; }
-      if (!window.selectedForm) { alert('Select a form first'); return; }
-
-      const resp = await fetch(`/discover?url=${encodeURIComponent(url)}`);
-      const data = await resp.json();
-      if (data.error) { alert('Discover error: ' + data.error); return; }
-      const formObj = data.forms.find(x => x.form_index === window.selectedForm.index);
-      if (!formObj) { alert('Selected form not found in discovery results'); return; }
-
-      let html = `<div style="padding:10px;border:1px solid #ddd;margin-top:10px;background:#fff">
-        <h3>Mapping for form #${formObj.form_index}</h3>
-        <form id="mappingForm">`;
-
-      formObj.fields.forEach((fld, idx) => {
-        const name = fld.name || fld.id || `field_${idx}`;
-        const suggested = (fld.type === 'email') ? `test+${name}@example.com` : (fld.type === 'textarea' ? 'Hello, this is a test.' : 'Test Value');
-        html += `<div style="margin-bottom:8px;">
-                   <label style="font-size:0.9em">${name} <small style="color:#555">${fld.label||''}</small></label><br>
-                   <input name="${name}" style="width:80%" value="${suggested}"/>
-                 </div>`;
-      });
-
-      html += `<div style="margin-top:8px">
-                 <button type="button" id="saveTemplateBtn">Save Template</button>
-                 <button type="button" id="cancelTemplateBtn">Cancel</button>
-               </div></form></div>`;
-
-      formsList.innerHTML = html;
-
-      document.getElementById('cancelTemplateBtn').addEventListener('click', () => {
-        formsList.innerHTML = '';
-      });
-
-      document.getElementById('saveTemplateBtn').addEventListener('click', async () => {
-        const fd = new FormData(document.getElementById('mappingForm'));
-        const mapping = {};
-        fd.forEach((v,k) => mapping[k] = v);
-        const payload = {
-          url: url,
-          form_index: formObj.form_index,
-          form_selector: window.selectedForm.selector,
-          mapping: mapping
-        };
-        try {
-          const r = await fetch('/select_template', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify(payload)
-          });
-          const j = await r.json();
-          if (j.status === 'ok') {
-            alert('Template saved: ' + j.path);
-            formsList.innerHTML = '';
-          } else {
-            alert('Save error: ' + JSON.stringify(j));
-          }
-        } catch (err) {
-          alert('Save failed: ' + err.toString());
-          console.error(err);
-        }
-      });
-    });
-    // -------------------- Run template --------------------
-    // Run template button handler
-    const runBtn = document.getElementById('run_template');
-    runBtn.addEventListener('click', async () => {
-      const url = urlInput.value.trim();
-      if (!url) { alert('Enter a URL'); return; }
-      if (!window.selectedForm) {
-        // if user hasn't selected but a template exists, it's OK — we still call run_template which loads saved template for URL
-        if (!confirm('No form selected in UI. Do you want to use the saved template for this URL (if any)?')) return;
-      }
-      // show a running message
-      formsList.innerHTML = '<div>Running saved template... (this may take 5-15s)</div>';
-      try {
-        const resp = await fetch(`/run_template?url=${encodeURIComponent(url)}`);
-        const j = await resp.json();
-        if (j.error) {
-          formsList.innerHTML = `<div style="color:red">Error: ${j.error}</div><pre>${JSON.stringify(j.job_log || {}, null, 2)}</pre>`;
-          return;
-        }
-        let html = `<div><strong>Result: ${j.result}</strong></div>`;
-        if (j.screenshot) {
-          html += `<div style="margin-top:8px"><a href="${j.screenshot}" target="_blank">Open post-submit screenshot</a></div>`;
-          html += `<div style="margin-top:8px"><img src="${j.screenshot}" style="max-width:600px;border:1px solid #ddd"/></div>`;
-        }
-        if (j.job_log) {
-          html += `<h4 style="margin-top:8px">Job log</h4><pre>${JSON.stringify(j.job_log, null, 2)}</pre>`;
-        }
-        formsList.innerHTML = html;
-      } catch (err) {
-        formsList.innerHTML = `<div style="color:red">Request failed: ${err.toString()}</div>`;
-        console.error(err);
-      }
-    });
-  });
-  </script>
+function escapeHtml(s){
+  if(!s) return '';
+  return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
 </body>
 </html>

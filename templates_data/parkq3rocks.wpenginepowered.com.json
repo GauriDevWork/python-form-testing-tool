@@ -1,0 +1,18 @@
+{
+  "form_index": 0,
+  "form_selector": "form.wpcf7-form",
+  "mapping": {
+    "_wpcf7": "Test Value",
+    "_wpcf7_version": "Test Value",
+    "_wpcf7_locale": "Test Value",
+    "_wpcf7_unit_tag": "Test Value",
+    "_wpcf7_container_post": "Test Value",
+    "_wpcf7_posted_data_hash": "Test Value",
+    "first-name": "Test Value",
+    "last-name": "Test Value",
+    "email": "test+email@example.com",
+    "phone": "(555) 555-0123",
+    "message": "Hello, this is a test.",
+    "field_11": "Test Value"
+  }
+}

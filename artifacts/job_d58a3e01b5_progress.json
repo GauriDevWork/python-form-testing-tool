@@ -1,0 +1,151 @@
+{
+  "job_id": "d58a3e01b5",
+  "status": "finished",
+  "result": "FAIL",
+  "job_log": [
+    {
+      "action": "goto",
+      "url": "https://wpforms.com/templates/automobile-information-form-template/",
+      "ts": "2025-10-09T06:50:58.669238"
+    },
+    {
+      "action": "screenshot",
+      "step": "after_goto",
+      "path": "/artifacts/d58a3e01b5_after_goto.png"
+    },
+    {
+      "action": "find_form_selector",
+      "selector": "form#wpforms-form-21",
+      "found": false
+    },
+    {
+      "action": "forms_count",
+      "count": 1
+    },
+    {
+      "action": "find_form_by_index",
+      "index": 0,
+      "found": true
+    },
+    {
+      "action": "fill_attempt",
+      "field": "wpforms[fields][2][first]",
+      "value": "Test Value",
+      "ts": "2025-10-09T06:51:03.563226",
+      "status": "error",
+      "error": "Page.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"[name='wpforms[fields][2][first]']\")\n"
+    },
+    {
+      "action": "fill_attempt",
+      "field": "wpforms[fields][2][last]",
+      "value": "Test Value",
+      "ts": "2025-10-09T06:51:33.861617",
+      "status": "error",
+      "error": "Page.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"[name='wpforms[fields][2][last]']\")\n"
+    },
+    {
+      "action": "fill_attempt",
+      "field": "wpforms[fields][1]",
+      "value": "Test Value",
+      "ts": "2025-10-09T06:52:04.135830",
+      "status": "error",
+      "error": "ElementHandle.fill: Error: Cannot type text into input[type=number]\nCall log:\n    - fill(\"Test Value\")\n  - attempting fill action\n    - waiting for element to be visible, enabled and editable\n"
+    },
+    {
+      "action": "fill_attempt",
+      "field": "wpforms[fields][5]",
+      "value": "test+wpforms[fields][5]@example.com",
+      "ts": "2025-10-09T06:52:04.430093",
+      "status": "error",
+      "error": "ElementHandle.fill: Error: Cannot type text into input[type=number]\nCall log:\n    - fill(\"test+wpforms[fields][5]@example.com\")\n  - attempting fill action\n    - waiting for element to be visible, enabled and editable\n"
+    },
+    {
+      "action": "fill_attempt",
+      "field": "wpf-temp-wpforms[fields][6]",
+      "value": "Test Value",
+      "ts": "2025-10-09T06:52:04.709875",
+      "status": "error",
+      "error": "Page.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"[name='wpf-temp-wpforms[fields][6]']\")\n"
+    },
+    {
+      "action": "fill_attempt",
+      "field": "wpforms[fields][3]",
+      "value": "Hello, this is a test.",
+      "ts": "2025-10-09T06:52:34.978277",
+      "status": "ok",
+      "valid": true
+    },
+    {
+      "action": "fill_attempt",
+      "field": "wpforms[id]",
+      "value": "Test Value",
+      "ts": "2025-10-09T06:52:35.325943",
+      "status": "error",
+      "error": "ElementHandle.fill: Timeout 30000ms exceeded.\nCall log:\n    - fill(\"Test Value\")\n  - attempting fill action\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n      - waiting 100ms\n    58 \u00d7 waiting for element to be visible, enabled and editable\n       - element is not visible\n     - retrying fill action\n       - waiting 500ms\n"
+    },
+    {
+      "action": "fill_attempt",
+      "field": "page_title",
+      "value": "Test Value",
+      "ts": "2025-10-09T06:53:05.607016",
+      "status": "error",
+      "error": "ElementHandle.fill: Timeout 30000ms exceeded.\nCall log:\n    - fill(\"Test Value\")\n  - attempting fill action\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n      - waiting 100ms\n    51 \u00d7 waiting for element to be visible, enabled and editable\n       - element is not visible\n     - retrying fill action\n       - waiting 500ms\n"
+    },
+    {
+      "action": "fill_attempt",
+      "field": "page_url",
+      "value": "Test Value",
+      "ts": "2025-10-09T06:53:35.880583",
+      "status": "error",
+      "error": "ElementHandle.fill: Timeout 30000ms exceeded.\nCall log:\n    - fill(\"Test Value\")\n  - attempting fill action\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n      - waiting 100ms\n    58 \u00d7 waiting for element to be visible, enabled and editable\n       - element is not visible\n     - retrying fill action\n       - waiting 500ms\n"
+    },
+    {
+      "action": "fill_attempt",
+      "field": "url_referer",
+      "value": "Test Value",
+      "ts": "2025-10-09T06:54:06.162565",
+      "status": "error",
+      "error": "ElementHandle.fill: Timeout 30000ms exceeded.\nCall log:\n    - fill(\"Test Value\")\n  - attempting fill action\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n      - waiting 100ms\n    58 \u00d7 waiting for element to be visible, enabled and editable\n       - element is not visible\n     - retrying fill action\n       - waiting 500ms\n"
+    },
+    {
+      "action": "fill_attempt",
+      "field": "page_id",
+      "value": "Test Value",
+      "ts": "2025-10-09T06:54:36.491792",
+      "status": "error",
+      "error": "ElementHandle.fill: Timeout 30000ms exceeded.\nCall log:\n    - fill(\"Test Value\")\n  - attempting fill action\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n      - waiting 100ms\n    58 \u00d7 waiting for element to be visible, enabled and editable\n       - element is not visible\n     - retrying fill action\n       - waiting 500ms\n"
+    },
+    {
+      "action": "fill_attempt",
+      "field": "wpforms[post_id]",
+      "value": "Test Value",
+      "ts": "2025-10-09T06:55:06.774617",
+      "status": "error",
+      "error": "ElementHandle.fill: Timeout 30000ms exceeded.\nCall log:\n    - fill(\"Test Value\")\n  - attempting fill action\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n      - waiting 100ms\n    58 \u00d7 waiting for element to be visible, enabled and editable\n       - element is not visible\n     - retrying fill action\n       - waiting 500ms\n"
+    },
+    {
+      "action": "screenshot",
+      "step": "after_fill",
+      "path": "/artifacts/d58a3e01b5_after_fill.png"
+    },
+    {
+      "action": "submit_attempt",
+      "ts": "2025-10-09T06:55:38.368202",
+      "status": "clicked"
+    },
+    {
+      "action": "detect_generic_text",
+      "found": false
+    },
+    {
+      "action": "screenshot",
+      "step": "after_submit",
+      "path": "/artifacts/d58a3e01b5_after_submit.png"
+    }
+  ],
+  "artifacts": [
+    "/artifacts/d58a3e01b5_after_goto.png",
+    "/artifacts/d58a3e01b5_after_fill.png",
+    "/artifacts/d58a3e01b5_after_submit.png"
+  ]
+}

@@ -302,6 +302,11 @@ def background_test(job_id: str, url: str, form_index: int = 0):
 
 
 # --- ROUTES ---
+@app.get("/ping")
+def ping():
+    """Simple health check used by Render and for quick debugging."""
+    return {"status": "ok", "time": datetime.datetime.utcnow().isoformat()}
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
